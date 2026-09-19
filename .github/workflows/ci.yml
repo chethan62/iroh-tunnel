@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: E2E (real iroh DHT tunnel)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --omit=dev
+      # The suite dials the public iroh DHT and punches a real tunnel, so this
+      # is an integration test, not a unit test: it needs outbound UDP.
+      - run: npm test
+      - name: CLI smoke (usage + argument validation)
+        run: |
+          # GitHub runs `run:` blocks with `bash -e`, so the deliberately
+          # failing invocations below need `set +e` or the step dies on the
+          # first one and reports the wrong thing.
+          set +e
+          node bin/iroh-tunnel.js; code=$?
+          echo "no-args exit=$code (want 2)"
+          node bin/iroh-tunnel.js connect endpoint-not-a-ticket --port 0; code2=$?
+          echo "bad-port exit=$code2 (want 2)"
+          [ "$code" = "2" ] && [ "$code2" = "2" ]

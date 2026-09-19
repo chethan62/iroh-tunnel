@@ -1,0 +1,21 @@
+{
+  "name": "iroh-tunnel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TCP/UDP tunnel over iroh (QUIC + hole-punching + relay fallback)",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "bin": {
+    "iroh-tunnel": "bin/iroh-tunnel.js"
+  },
+  "engines": {
+    "node": ">=20.3.0"
+  },
+  "scripts": {
+    "test": "node test/tunnel.test.js"
+  },
+  "dependencies": {
+    "@number0/iroh": "^1.1.0"
+  }
+}
