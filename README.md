@@ -56,6 +56,29 @@ work, and the tests.
 - **The ALPN is its own** (`iroh-tunnel/1`), so tickets from here do not
   interoperate with other iroh apps.
 
+## Why ~4 MB/s (the binding, not the network)
+
+Every payload byte crosses the JS boundary as a plain `Array`, not a typed
+array: `recv.read()` returns `Array` (~0.19 µs/byte) and `send.write()`
+*rejects* `Buffer`/`Uint8Array` ("Failed to get Array length"). That caps a JS
+host at ~4 MB/s whatever the chunk size — chunk size, receive window (16/64 MB),
+relay-off and stream limits were all measured and change nothing.
+
+The upgrade path is small and upstream: accept/return `Uint8Array` in
+`iroh-ffi`'s NAPI-RS signatures (`Vec<u8>` → typed array) and the same memcpy
+path would run at hundreds of MB/s.
+
+Measured on one machine, same bench, both ends in separate processes:
+
+|                              | upload    | download  | 20 sockets at once  |
+| ---------------------------- | --------- | --------- | ------------------- |
+| holesail (for comparison)    | 28.9 MB/s | 30.8 MB/s | 20/20 in 3.6 s      |
+| iroh (`@number0/iroh` 1.1.0) | 4.1 MB/s  | 4.1 MB/s  | 20/20 in **0.09 s** |
+
+So: iroh wins connection setup by ~40x and carries datagrams natively; it loses
+bulk transfer by ~7x. That split is why this is a separate project rather than
+a second engine in a file-moving GUI.
+
 ## Tests
 
 `npm test` runs one self-contained end-to-end pass: a TCP tunnel carrying a
